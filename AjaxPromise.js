@@ -1,3 +1,5 @@
+const { resolve } = require("path");
+
 var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 //function to show the time
 function showTime()
@@ -8,27 +10,31 @@ function showTime()
 
 //function to make ajax call
 //async and data are optional parameters
-function makeAJAXCall(methodType,url,callback,async=true,data=null)
+function makePromiseCall(methodType,url,async=true,data=null)
 {
+    //creating a promise object which has two parameters resolve and reject
+    return new Promise(function(resolve,reject){
     //making object of XMLHttpRequest() which invokes constructor
     let xhr= new XMLHttpRequest();
-    //registring an event listener
+    //when ready state reaches 3, means data is coming from the server
     //eventlistener will keep gettting calls on state change
     //this is event listener and it will be always called whenever there is change in status of xhr.
     xhr.onreadystatechange= function(){
-        //if status is 200 or 201 then request is executed and response text is passed to callback function
         //if connection is closed and status is 200 or 201 then callback method is called
         if(xhr.readyState===4)
         {
             if(xhr.status===200||xhr.status===201)
             {
-                //using callback function, i  am able to reuse code
-                //otherwise i will have to make ajax call method for each request
-                callback(xhr.responseText);
+               resolve(xhr.responseText);
             }
             //if status is greater than 400, there is error in calling request
             else if(xhr.status>=400)
             {
+                reject({
+                    status:xhr.status,
+                    statusText:xhr.statusText
+                });
+                console.log("Xhr failed");
                 console.log("Handle 400 client error or 500 server error at: "+showTime())
             }
         }
@@ -50,40 +56,30 @@ function makeAJAXCall(methodType,url,callback,async=true,data=null)
     //opening up connection
     //xhr.send();
     console.log(methodType+" Request sent to the server at: "+showTime());
+    });
 }
 //get user details function
-function getUserDetails(data)
-{
-    console.log("Get User Data at"+showTime()+" Values "+data);
-}
-
-//making ajax call through function
-//specifying http method, url for call and callback function, async nature to be true or false
-//getUserDetails is a callback function, after exection of this method, getUsetDetails will be executed
-//async nature set to true means, program will run asynchrnously only.
-const getURL=   "http://localhost:3000/Employees/";
-makeAJAXCall("GET",getURL,getUserDetails,true);
-console.log("Made GET AJAX call to server at: "+showTime());
+const getURL="http://localhost:3000/Employees/1";
+makePromiseCall("GET",getURL,true)
+    .then(responseText=>{
+        console.log("Get User data: "+responseText);
+    })
+    .catch(error=>console.log("Get error status: "+JSON.stringify(error)))
 
 //deleting element from json file
 //url
-const deleteURL="http://localhost:3000/Employees/4";
-//callback function
-function userDeleted(data)
-{
-    console.log("User Deleted: "+data);
-}
-//method to make ajax call
-makeAJAXCall("DELETE",deleteURL,userDeleted,false);
-console.log("Made DELETE AJAX call to server at: "+showTime());
+const deleteURL="http://localhost:3000/Employees/5";
+//making promise call
+makePromiseCall("DELETE",deleteURL,false)
+    .then(responseText=>console.log("User Deleted: "+responseText))
+    .catch(error=>console.log("DELETE Error Status: "+JSON.stringify(error)))
+
 
 const postURL= "http://localhost:3000/Employees";
 //id is directly added by the server, id always increases, if element is delete and then added, then also id will be forward incremented
 //deleted id will not be added
 const emplData= {"name":"Kretika","salary":"680000"};
-function userAdded(data)
-{
-    console.log("User Added: "+data);
-}
-makeAJAXCall("POST",postURL,userAdded,true,emplData);
-console.log("Made POST AJAX call to server at: "+showTime());
+//making promise call
+makePromiseCall("POST",postURL,true,emplData)
+    .then(responseText=>console.log("User added: "+responseText))
+    .catch(error=>console.log("POST error status: "+error))
